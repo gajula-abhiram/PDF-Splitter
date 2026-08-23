@@ -60,26 +60,30 @@ class PhotoStore(context: Context) : SQLiteOpenHelper(context, "photoq.db", null
     fun claimBundle(photos: List<CameraPhoto>, bundleId: String): Boolean {
         if (photos.isEmpty()) return false
         val db = writableDatabase
+        var claimed = false
         db.beginTransaction()
-        return try {
+        try {
+            var collision = false
             for (p in photos) {
-                val c = db.rawQuery("SELECT 1 FROM images WHERE media_id=?", arrayOf(p.id.toString()))
-                val exists = c.use { it.moveToFirst() }
-                if (exists) return@try false
+                val exists = db.rawQuery("SELECT 1 FROM images WHERE media_id=?", arrayOf(p.id.toString())).use { it.moveToFirst() }
+                if (exists) { collision = true; break }
             }
-            val now = System.currentTimeMillis()
-            for (p in photos) {
-                val v = ContentValues().apply {
-                    put("media_id", p.id); put("uri", p.uri); put("captured_at", p.capturedAt)
-                    put("mime", p.mime); put("state", "WAITING"); put("bundle_id", bundleId)
-                    put("updated_at", now)
+            if (!collision) {
+                val now = System.currentTimeMillis()
+                for (p in photos) {
+                    val v = ContentValues().apply {
+                        put("media_id", p.id); put("uri", p.uri); put("captured_at", p.capturedAt)
+                        put("mime", p.mime); put("state", "WAITING"); put("bundle_id", bundleId)
+                        put("updated_at", now)
+                    }
+                    db.insertOrThrow("images", null, v)
                 }
-                db.insertOrThrow("images", null, v)
+                db.setTransactionSuccessful()
+                claimed = true
             }
-            db.setTransactionSuccessful()
-            bump()
-            true
         } finally { db.endTransaction() }
+        if (claimed) bump()
+        return claimed
     }
 
     @Synchronized
