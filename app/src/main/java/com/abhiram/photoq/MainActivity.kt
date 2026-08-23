@@ -6,12 +6,13 @@ import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Size
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
+import android.util.Size
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -42,6 +43,7 @@ class MainActivity : ComponentActivity() {
         setContent { MaterialTheme { PhotoQRoot() } }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun PhotoQRoot() {
         val prefs = remember { getSharedPreferences("photoq", Context.MODE_PRIVATE) }
@@ -160,7 +162,7 @@ class MainActivity : ComponentActivity() {
                 if (details) {
                     Text("Raw Gemini response:", fontWeight = FontWeight.SemiBold)
                     Text(r.raw.ifBlank { "(no raw response)" }, style = MaterialTheme.typography.bodySmall)
-                    Row { TextButton(onClick = { app.store.deleteResult(r.id) }) { Text("Delete") } }
+                    Row { TextButton(onClick = { app.store.deleteResult(r.id); onInfo("Result deleted") }) { Text("Delete") } }
                 }
             }
         }
